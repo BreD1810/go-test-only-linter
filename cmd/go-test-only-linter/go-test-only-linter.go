@@ -29,21 +29,24 @@ func main() {
 	binaryFuncs := binary.GetBinaryFunctions(buildLocation)
 	// fmt.Printf("%+q\n\n", binaryFuncs)
 
-	v := visitor{fset: token.NewFileSet()}
 	for _, filePath := range os.Args[2:] {
 		if filePath == "--" { // Needed for `go run ... -- file`
 			continue
 		}
 
-		// fmt.Printf("PROVIDED ARG: %s\n", filePath)
-		curFilePath = filepath.Dir(filePath)
-
-		f, err := parser.ParseFile(v.fset, filePath, nil, 0)
-		if err != nil {
-			log.Fatalf("failed to parse file %s: %s", filePath, err)
+		if strings.HasSuffix(filePath, "/...") {
+			dirName := filePath[:len(filePath)-4]
+			fInfo, err := os.Stat(dirName)
+			if err != nil {
+				log.Fatalf("error with filepath %s: %s", filePath, err)
+			}
+			if !fInfo.IsDir() {
+				log.Fatalf("error with filepath %s: %s is not a directory", filePath, dirName)
+			}
+			walkDir(dirName)
+		} else {
+			walkAst(filePath)
 		}
-
-		ast.Walk(&v, f)
 	}
 
 	for _, declaredFunc := range declaredFuncs {
@@ -51,6 +54,31 @@ func main() {
 		if _, ok := binaryFuncs[declaredFunc]; !ok {
 			fmt.Fprintf(os.Stderr, "%s is not used\n", declaredFunc)
 		}
+	}
+}
+
+func walkAst(filePath string) {
+	v := visitor{fset: token.NewFileSet()}
+	// fmt.Printf("PROVIDED ARG: %s\n", filePath)
+	curFilePath = filepath.Dir(filePath)
+
+	f, err := parser.ParseFile(v.fset, filePath, nil, 0)
+	if err != nil {
+		log.Fatalf("failed to parse file %s: %s", filePath, err)
+	}
+
+	ast.Walk(&v, f)
+}
+
+func walkDir(dirName string) {
+	err := filepath.Walk(dirName, func(path string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() && strings.HasSuffix(path, ".go") {
+			walkAst(path)
+		}
+		return err
+	})
+	if err != nil {
+		log.Fatalf("error walking directory %s: %s", dirName, err)
 	}
 }
 
