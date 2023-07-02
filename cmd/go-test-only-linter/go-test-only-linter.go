@@ -27,7 +27,7 @@ func main() {
 
 	buildLocation := os.Args[1]
 	binaryFuncs := binary.GetBinaryFunctions(buildLocation)
-	// fmt.Printf("%+q\n", binaryFuncs)
+	// fmt.Printf("%+q\n\n", binaryFuncs)
 
 	v := visitor{fset: token.NewFileSet()}
 	for _, filePath := range os.Args[2:] {
@@ -47,6 +47,7 @@ func main() {
 	}
 
 	for _, declaredFunc := range declaredFuncs {
+		// fmt.Printf("DECLARED: %s\n", declaredFunc)
 		if _, ok := binaryFuncs[declaredFunc]; !ok {
 			fmt.Fprintf(os.Stderr, "%s is not used\n", declaredFunc)
 		}
@@ -63,8 +64,22 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	// 	curPackage = file.Name.Name
 	// }
 	if fdecl, ok := node.(*ast.FuncDecl); ok {
-		declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name))
-		// fmt.Printf("Found function declaration: %s/%s.%s\n", projectName, curFilePath, fdecl.Name.Name)
+		if fdecl.Recv != nil {
+			// fmt.Printf("RECEIVER: %s\n", fdecl.Recv)
+			if recv, ok := fdecl.Recv.List[0].Type.(*ast.StarExpr); ok {
+				if recvType, ok := recv.X.(*ast.Ident); ok {
+					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.(*%s).%s", projectName, curFilePath, recvType.Name, fdecl.Name.Name))
+				}
+			}
+			// fdecl.Recv.List[0].Type.(*ast.StarExpr).Name
+			// switch f := fdecl.Recv.(type) {
+			// case *ast.Ident:
+			// 	fmt.Printf("NAME: %s\n", f)
+			// }
+		} else {
+			declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name))
+			// fmt.Printf("Found function declaration: %s/%s.%s\n", projectName, curFilePath, fdecl.Name.Name)
+		}
 	}
 
 	return v
