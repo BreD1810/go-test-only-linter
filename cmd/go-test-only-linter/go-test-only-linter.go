@@ -59,24 +59,22 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 		return nil
 	}
 
-	// if file, ok := node.(*ast.File); ok {
-	// 	fmt.Printf("Found package: %s\n", file.Name.Name)
-	// 	curPackage = file.Name.Name
-	// }
 	if fdecl, ok := node.(*ast.FuncDecl); ok {
 		if fdecl.Recv != nil {
 			// fmt.Printf("RECEIVER: %s\n", fdecl.Recv)
 			if recv, ok := fdecl.Recv.List[0].Type.(*ast.StarExpr); ok {
-				if recvType, ok := recv.X.(*ast.Ident); ok {
-					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.(*%s).%s", projectName, curFilePath, recvType.Name, fdecl.Name.Name))
+				if recvType, ok := recv.X.(*ast.Ident); ok { //
+					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.(*%s).%s", projectName, curFilePath, recvType.Name, fdecl.Name.Name)) // Pointer receivers
 				}
 			}
 			if recvIdent, ok := fdecl.Recv.List[0].Type.(*ast.Ident); ok {
-				declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s.%s", projectName, curFilePath, recvIdent.Name, fdecl.Name.Name))
+				declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s.%s", projectName, curFilePath, recvIdent.Name, fdecl.Name.Name)) // Receivers
 			}
 		} else {
-			declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name))
-			// fmt.Printf("Found function declaration: %s/%s.%s\n", projectName, curFilePath, fdecl.Name.Name)
+			if !strings.HasPrefix(fdecl.Name.Name, "Test") { // Ignore Test functions
+				declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name)) // Functions
+				// fmt.Printf("Found function declaration: %s/%s.%s\n", projectName, curFilePath, fdecl.Name.Name)
+			}
 		}
 	}
 
