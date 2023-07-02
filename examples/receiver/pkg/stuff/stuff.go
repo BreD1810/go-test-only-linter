@@ -6,6 +6,10 @@ type StuffStruct struct {
 	name string
 }
 
+func init() {
+	fmt.Println("doing an init")
+}
+
 func NewStuffStruct() StuffStruct {
 	return StuffStruct{name: "testStruct"}
 }

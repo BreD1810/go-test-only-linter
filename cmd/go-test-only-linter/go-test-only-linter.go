@@ -71,7 +71,7 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 				declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s.%s", projectName, curFilePath, recvIdent.Name, fdecl.Name.Name)) // Receivers
 			}
 		} else {
-			if !strings.HasPrefix(fdecl.Name.Name, "Test") { // Ignore Test functions
+			if !strings.HasPrefix(fdecl.Name.Name, "Test") && fdecl.Name.Name != "main" && fdecl.Name.Name != "init" { // Ignore Test, main and init functions
 				declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name)) // Functions
 				// fmt.Printf("Found function declaration: %s/%s.%s\n", projectName, curFilePath, fdecl.Name.Name)
 			}
