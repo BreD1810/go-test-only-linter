@@ -71,11 +71,9 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.(*%s).%s", projectName, curFilePath, recvType.Name, fdecl.Name.Name))
 				}
 			}
-			// fdecl.Recv.List[0].Type.(*ast.StarExpr).Name
-			// switch f := fdecl.Recv.(type) {
-			// case *ast.Ident:
-			// 	fmt.Printf("NAME: %s\n", f)
-			// }
+			if recvIdent, ok := fdecl.Recv.List[0].Type.(*ast.Ident); ok {
+				declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s.%s", projectName, curFilePath, recvIdent.Name, fdecl.Name.Name))
+			}
 		} else {
 			declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name))
 			// fmt.Printf("Found function declaration: %s/%s.%s\n", projectName, curFilePath, fdecl.Name.Name)
