@@ -18,6 +18,14 @@ func buildUnoptimised(filePath string) {
 	}
 }
 
+func removeUnoptimised() {
+	cmd := exec.Command("rm", binaryName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("failed to delete generated binary: %s\n%s\n", err, output)
+	}
+}
+
 func GetBinaryFunctions(filePath string) map[string]struct{} {
 	buildUnoptimised(filePath)
 	cmd := exec.Command("go", "tool", "nm", binaryName)
@@ -60,6 +68,8 @@ func GetBinaryFunctions(filePath string) map[string]struct{} {
 
 		funcNames[funcName] = struct{}{}
 	}
+
+	removeUnoptimised()
 
 	return funcNames
 }
