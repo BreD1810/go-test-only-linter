@@ -66,6 +66,9 @@ func walkAst(filePath string) {
 	if err != nil {
 		log.Fatalf("failed to parse file %s: %s", filePath, err)
 	}
+	if curFilePath == "." || f.Name.Name == "main" { // If in root, use package name
+		curFilePath = f.Name.Name
+	}
 
 	ast.Walk(&v, f)
 }
@@ -92,15 +95,27 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 			// fmt.Printf("RECEIVER: %s\n", fdecl.Recv)
 			if recv, ok := fdecl.Recv.List[0].Type.(*ast.StarExpr); ok {
 				if recvType, ok := recv.X.(*ast.Ident); ok { //
-					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.(*%s).%s", projectName, curFilePath, recvType.Name, fdecl.Name.Name)) // Pointer receivers
+					if curFilePath == "main" {
+						declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s.(*%s).%s", curFilePath, recvType.Name, fdecl.Name.Name)) // Pointer receivers
+					} else {
+						declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.(*%s).%s", projectName, curFilePath, recvType.Name, fdecl.Name.Name)) // Pointer receivers
+					}
 				}
 			}
 			if recvIdent, ok := fdecl.Recv.List[0].Type.(*ast.Ident); ok {
-				declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s.%s", projectName, curFilePath, recvIdent.Name, fdecl.Name.Name)) // Receivers
+				if curFilePath == "main" {
+					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s.%s.%s", curFilePath, recvIdent.Name, fdecl.Name.Name)) // Receivers
+				} else {
+					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s.%s", projectName, curFilePath, recvIdent.Name, fdecl.Name.Name)) // Receivers
+				}
 			}
 		} else {
 			if !strings.HasPrefix(fdecl.Name.Name, "Test") && fdecl.Name.Name != "main" && fdecl.Name.Name != "init" { // Ignore Test, main and init functions
-				declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name)) // Functions
+				if curFilePath == "main" {
+					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s.%s", curFilePath, fdecl.Name.Name)) // Functions
+				} else {
+					declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name)) // Functions
+				}
 				// fmt.Printf("Found function declaration: %s/%s.%s\n", projectName, curFilePath, fdecl.Name.Name)
 			}
 		}
