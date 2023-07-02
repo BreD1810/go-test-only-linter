@@ -7,20 +7,36 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/BreD1810/go-test-only-linter/binary"
 )
 
 type visitor struct {
 	fset *token.FileSet
 }
 
+// var curPackage string
+var curFilePath string
+var projectName string
+var declaredFuncs []string
+
 func main() {
+	projectName = getProjectName()
+
+	buildLocation := os.Args[1]
+	binaryFuncs := binary.GetBinaryFunctions(buildLocation)
+	// fmt.Printf("%+q\n", binaryFuncs)
+
 	v := visitor{fset: token.NewFileSet()}
-	for _, filePath := range os.Args[1:] {
+	for _, filePath := range os.Args[2:] {
 		if filePath == "--" { // Needed for `go run ... -- file`
 			continue
 		}
 
-		fmt.Printf("PROVIDED ARG: %s\n", filePath)
+		// fmt.Printf("PROVIDED ARG: %s\n", filePath)
+		curFilePath = filepath.Dir(filePath)
 
 		f, err := parser.ParseFile(v.fset, filePath, nil, 0)
 		if err != nil {
@@ -29,6 +45,12 @@ func main() {
 
 		ast.Walk(&v, f)
 	}
+
+	for _, declaredFunc := range declaredFuncs {
+		if _, ok := binaryFuncs[declaredFunc]; !ok {
+			fmt.Fprintf(os.Stderr, "%s is not used\n", declaredFunc)
+		}
+	}
 }
 
 func (v *visitor) Visit(node ast.Node) ast.Visitor {
@@ -36,9 +58,26 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 		return nil
 	}
 
+	// if file, ok := node.(*ast.File); ok {
+	// 	fmt.Printf("Found package: %s\n", file.Name.Name)
+	// 	curPackage = file.Name.Name
+	// }
 	if fdecl, ok := node.(*ast.FuncDecl); ok {
-		fmt.Printf("Found function declaration: %s\n", fdecl.Name.Name)
+		declaredFuncs = append(declaredFuncs, fmt.Sprintf("%s/%s.%s", projectName, curFilePath, fdecl.Name.Name))
+		// fmt.Printf("Found function declaration: %s/%s.%s\n", projectName, curFilePath, fdecl.Name.Name)
 	}
 
 	return v
+}
+func getProjectName() string {
+	f, err := os.ReadFile("go.mod")
+	if err != nil {
+		log.Fatalf("failed to read go.mod: %s", err)
+	}
+	lines := strings.Split(string(f), "\n")
+	if len(lines) < 1 {
+		log.Fatalf("go.mod is empty")
+	}
+
+	return strings.TrimPrefix(lines[0], "module ")
 }
