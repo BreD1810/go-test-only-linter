@@ -2,7 +2,7 @@ go-test-only-linter
 ===
 
 `golangci-lint` doesn't spot functions that are only used in tests - ideally these should be declared as unused.
-This tool will identify this kinda of unused code.
+This tool will identify this kind of unused code.
 
 **NOTE**: This will highlight exported code in libraries that is not used within the library itself.
 
