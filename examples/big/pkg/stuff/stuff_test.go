@@ -1,7 +1,7 @@
 package stuff_test
 
 import (
-	stuff "test-only-example-big/pkg"
+	"test-only-example-big/pkg/stuff"
 	"testing"
 )
 
